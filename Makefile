@@ -3,9 +3,15 @@ SHELL=/bin/bash
 
 CPPFLAGS = -g -Wall
 
-#not including tms.o
-OBJ	= controller.o state.o buffer.o socket.o
+LDFLAGS = $(CPPFLAGS)
+CC = $(CXX) #to link properly
 
-tms: $(OBJ)
+SRCS=$(wildcard *.cpp)
+OBJS=$(SRCS:.cpp=.o)
 
-$(OBJ): *.h
+tms: $(OBJS)
+
+$(OBJS): *.h
+
+clean:
+	rm -f *.o tms
