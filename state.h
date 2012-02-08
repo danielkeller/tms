@@ -5,13 +5,13 @@ using namespace std;
 class Watcher
 {
 public:
-	void handle(Buffer * b);
+	virtual void handle(Buffer * b) = 0;
 };
 
 class State
 {
 public:
-	Result handle(Buffer * b);
+	virtual Result handle(Buffer * b) = 0;
 };
 
 class ListWatcher : public Watcher

@@ -4,8 +4,8 @@ using namespace std;
 
 class Controller
 {
-	map<pair<int,char>, State*> reads;
-	map<int, State*> writes;
+	map<pair<int,char>, Watcher*> wreads;
+	map<int, Watcher*> wwrites;
 	
 	int epollfd;
 
@@ -17,16 +17,18 @@ public:
 		Read,
 		Write
 	};
+	
 	//watch an open tcp stream for writeable / data
-	void watch(int fd, State * s, Type t);
+	void watch(int fd, State* s, Type t);
 	
 	//watch a udp socket for writeable
 	//if we want data from udp, we will watch permanently
-	void watch(int fd, State *s);
-	
+	//unless we add address filter (which i don't think is needed)
+	void watch(int fd, State* s);
+
 	//permanently watch a tcp socket for pending connections
-	void watch(int fd, Watcher * s, Type t);
+	void watch(int fd, Watcher* s);
 	
 	//permanently watch a udp socket for data
-	void watch(int fd, char pid, Watcher * s, Type t);
+	void watch(int fd, char pid, Watcher* s);
 };

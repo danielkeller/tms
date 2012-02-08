@@ -41,6 +41,12 @@ void Buffer::pop(size_t l)
 	}
 }
 
+void Buffer::clear()
+{
+	delete[] start;
+	pos = end = start = new char[0];
+}
+
 bool Buffer::skip(size_t n)
 {
 	if (available() < n)

@@ -6,20 +6,22 @@ using namespace std;
 //for udp, end of data means bad packet, don't wait
 //for tcp, end of data means more is (probably) on the way, wait
 #define TTEST(x) if (!(x)) {b->reset(); return Wait;}
-#define UTEST(x) if (!(x)) {b->reset(); return Err;}
+#define UTEST(x) if (!(x)) {return Err;}
 
 void ListWatcher::handle(Buffer * b)
 {
 	ListState * ls = new ListState();
 	if (ls->readReq(b) == Err)
 		delete ls;
-	delete ls; //temporary
+	else
+		delete ls; //temporary
 }
 
 Result ListState::readReq(Buffer * b)
 {
 	UTEST(b->skip(2));
 	UTEST(b->read(key));
+	UTEST(b->read(page));
 	UTEST(b->read(game));
 	UTEST(b->read(mission));
 	UTEST(b->read(minp));

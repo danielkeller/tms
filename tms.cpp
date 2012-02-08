@@ -12,7 +12,8 @@ int main()
 
 	Controller ctrl;
 	
-	ctrl.watchu(Socket::udpOpen(TORQUE_MS_PORT), LIST_REQ, new ListWatcher(), Controller::Read);
+	ListWatcher lw;
+	ctrl.watch(Socket::udpOpen(TORQUE_MS_PORT), LIST_REQ, &lw);
 	
 	ctrl.loop();
 	

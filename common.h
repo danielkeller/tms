@@ -6,6 +6,12 @@
 class Buffer;
 class Watcher;
 class State;
+namespace Socket
+{
+	class IP;
+};
+
+//maybe this should be in a namespace?
 enum Result {
 	Err, //error condition, delete this state
 	Wait, //not enough data, keep state & keep watch
@@ -21,5 +27,8 @@ enum Result {
 #define INFO_REQ 10
 #define INFO_RESP 12
 #define HEARTBEAT 22
+
+//other
+#define EPOLL_MAX_E 10
 
 #endif
