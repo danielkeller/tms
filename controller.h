@@ -6,11 +6,8 @@ using namespace std;
 class Controller
 {
 	map<pair<int,char>, Watcher*> wreads;
-	//map<int, Watcher*> wwrites; //?
 	map<int, State*> sreads;
 	map<int, map<Socket::IP, Buffer> > writes;
-
-	int epollfd;
 	
 	static Controller * sng;
 	Controller();

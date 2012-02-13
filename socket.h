@@ -37,16 +37,18 @@ namespace Socket
 		void set(unsigned long addr, unsigned short port);
 		unsigned short port() const;
 		unsigned long addr() const;
+		unsigned long naddr() const {return address.sin_addr.s_addr;} //torque expects address in big endian
 		
 		const static IP null;
 	};
 	
 	bool operator<(const IP l, const IP r);
 
-	int epollCreate();
-	void epollWatchRead(int epollfd, int fd);
-	void epollWatchWrite(int epollfd, int fd);
-	EpollIter epollWait(int epollfd);
+	void epollWatchRead(int fd);
+	void epollWatchWrite(int fd);
+	void epollUnWatchRead(int fd);
+	void epollUnWatchWrite(int fd);
+	EpollIter epollWait();
 	
 	bool read(int fd, Buffer & b);
 	bool read(int fd, Buffer & b, IP & src);

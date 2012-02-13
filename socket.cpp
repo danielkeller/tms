@@ -5,13 +5,21 @@
 #include <errno.h>
 #include <cstdio>
 #include <cstdlib>
+#include <map>
 
 #include "socket.h"
 #include "buffer.h"
 
+using namespace std;
+
 epoll_event Socket::EpollIter::events[EPOLL_MAX_E];
 	
 const Socket::IP Socket::IP::null;
+
+//maps fd to reference count
+map<int, int> epollReads;
+map<int, int> epollWrites;
+int epollfd;
 
 void diep(const char *s)
 {
@@ -82,44 +90,96 @@ bool Socket::operator<(const IP l, const IP r)
 
 int Socket::epollCreate()
 {
-	int fd = epoll_create1(0);
-	if (fd == -1)
+	epollfd = epoll_create1(0);
+	if (epollfd == -1)
 		diep("epoll_create1");
 	return fd;
 }
 
-void Socket::epollWatchRead(int epollfd, int fd)
+void Socket::epollWatchRead(int fd)
 {
 	struct epoll_event ev;
 	ev.events = EPOLLIN;
 	ev.data.fd = fd;
-	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev) == -1)
+	int ctl;
+	if (epollReads.count(fd))
 	{
-		if (errno == EEXIST) //EEXIST check needed to watch same socket for different pids
-		{
-			if (epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &ev) == -1) //add read watch if watching write
-				diep("epoll_ctl");
-		}
-		else
-			diep("epoll_ctl");
+		++epollReads[fd];
+		return;
 	}
+	else if (epollWrites.count(fd))
+		ctl = EPOLL_CTL_MOD;
+	else
+		ctl = EOPLL_CTL_ADD;
+
+	if (epoll_ctl(epollfd, ctl, fd, &ev) == -1)
+			diep("epoll_ctl");
+
+	epollReads[fd] = 1;
 }
 	
-void Socket::epollWatchWrite(int epollfd, int fd)
+void Socket::epollWatchWrite(int fd)
 {
 	struct epoll_event ev;
 	ev.events = EPOLLOUT;
 	ev.data.fd = fd;
-	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev) == -1)
+	int ctl;
+	if (epollWrites.count(fd))
 	{
-		if (errno == EEXIST) //EEXIST check needed to watch same socket for different pids
-		{
-			if (epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &ev) == -1) //add write watch if watching read
-				diep("epoll_ctl");
-		}
-		else
-			diep("epoll_ctl");
+		++epollWrites[fd];
+		return;
 	}
+	else if (epollReads.count(fd))
+		ctl = EPOLL_CTL_MOD;
+	else
+		ctl = EOPLL_CTL_ADD;
+
+	if (epoll_ctl(epollfd, ctl, fd, &ev) == -1)
+			diep("epoll_ctl");
+
+	epollWrites[fd] = 1;
+}
+
+void Socket::epollUnWatchRead(int fd)
+{
+	struct epoll_event ev;
+	ev.events = EPOLLOUT;
+	ev.data.fd = fd;
+	int ctl;
+	if (!epollReads.count(fd))
+		return;
+	else if (epollWrites.count(fd))
+		ctl = EPOLL_CTL_MOD;
+	else
+		ctl = EOPLL_CTL_DEL;
+
+	if (epoll_ctl(epollfd, ctl, fd, &ev) == -1)
+			diep("epoll_ctl");
+
+	--epollReads[fd];
+	if (epollReads[fd] < 1)
+		epollReads.erase(fd);
+}
+	
+void Socket::epollUnWatchWrite(int fd)
+{
+	struct epoll_event ev;
+	ev.events = EPOLLIN;
+	ev.data.fd = fd;
+	int ctl;
+	if (!epollWrites.count(fd))
+		return;
+	else if (epollReads.count(fd))
+		ctl = EPOLL_CTL_MOD;
+	else
+		ctl = EOPLL_CTL_DEL;
+
+	if (epoll_ctl(epollfd, ctl, fd, &ev) == -1)
+			diep("epoll_ctl");
+
+	--epollWrites[fd];
+	if (epollWrites[fd] < 1)
+		epollWrites.erase(fd);
 }
 
 Socket::EpollIter Socket::epollWait(int epollfd)

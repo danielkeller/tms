@@ -7,7 +7,7 @@ Controller * Controller::sng = 0;
 
 Controller::Controller()
 {
-	epollfd = Socket::epollCreate();
+	Socket::epollCreate();
 }
 
 Controller * Controller::get()
@@ -25,7 +25,7 @@ void Controller::loop()
 	while (true)
 	{
 		//do the acutal wait here.
-		eit = Socket::epollWait(epollfd);
+		eit = Socket::epollWait();
 		
 		for (; eit.hasNext(); eit.next())
 		{
@@ -86,5 +86,5 @@ void Controller::watch(int fd, char pid, Watcher * s)
 	if (wreads.count(make_pair(fd, pid)))
 		return; //already watching here
 	wreads[make_pair(fd, pid)] = s;
-	Socket::epollWatchRead(epollfd, fd);
+	Socket::epollWatchRead(fd);
 }
