@@ -1,7 +1,7 @@
 .KEEP_STATE:
 SHELL=/bin/bash
 
-CPPFLAGS = -g -Wall
+CPPFLAGS = -rdynamic -g -Wall
 
 LDFLAGS = $(CPPFLAGS)
 CC = $(CXX) #to link properly
