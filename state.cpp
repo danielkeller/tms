@@ -1,5 +1,8 @@
 #include "state.h"
 #include "buffer.h"
+#include "data.h"
+#include "controller.h"
+#include <time.h>
 #include <iostream>
 using namespace std;
 
@@ -8,13 +11,21 @@ using namespace std;
 #define TTEST(x) if (!(x)) {b->reset(); return Wait;}
 #define UTEST(x) if (!(x)) {return Err;}
 
-void ListWatcher::handle(Buffer * b)
+void HeartWatcher::handle(Buffer * b, Socket::IP src)
 {
+	Data::servs[src].heartbeat = time(NULL);
+}
+
+void ListWatcher::handle(Buffer * b, Socket::IP src)
+{
+	cerr << "From: " << src << endl;
 	ListState * ls = new ListState();
 	if (ls->readReq(b) == Err)
-		delete ls;
+		;
 	else
-		delete ls; //temporary
+		ls->writeResp(src);
+	delete ls;
+	//(eventually) don't delete otherwise, will get deleted by controller
 }
 
 Result ListState::readReq(Buffer * b)
@@ -36,14 +47,24 @@ Result ListState::readReq(Buffer * b)
 	UTEST(b->skip(4 * bcount));
 	
 	cerr << game << " " << mission << endl;
-	status = WriteResponse;
-	//queue response
 	
-	return Done;
+	return OK;
+}
+
+void ListState::writeResp(Socket::IP dst)
+{
+	Controller * ctrl = Controller::get();
+	ctrl->writeTo(torquePort, dst, LIST_RESP);
+	ctrl->writeTo(torquePort, dst, (char)0);
+	ctrl->writeTo(torquePort, dst, key);
+	ctrl->writeTo(torquePort, dst, (char)1); //packet number
+	ctrl->writeTo(torquePort, dst, (char)1); //out of
+	ctrl->writeTo(torquePort, dst, (short)Data::servs.size());
+	for (map<Socket::IP, Data::Server>::iterator it = Data::servs.begin(); it != Data::servs.end(); ++it)
+		ctrl->writeTo(torquePort, dst, it->first);
 }
 	
 Result ListState::handle(Buffer * b)
 {
-	
 	return Done;
 }

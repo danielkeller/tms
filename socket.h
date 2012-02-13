@@ -3,6 +3,8 @@
 
 #include <netinet/in.h>
 #include <sys/epoll.h>
+#include <ostream>
+using namespace std;
 #include "common.h"
 
 //abstraction layer for POSIX sockets
@@ -26,12 +28,20 @@ namespace Socket
 	struct IP
 	{
 		sockaddr_in address;
-		IP(sockaddr_in sa) : address(sa) {}
-		IP(const char * name, unsigned short port);
-		IP(unsigned long addr, unsigned short port);
-		unsigned short port();
-		unsigned long addr();
+		IP() {}
+		IP(sockaddr_in & sa) {set(sa);}
+		IP(const char * name, unsigned short port) {set(name, port);}
+		IP(unsigned long addr, unsigned short port) {set(addr, port);}
+		void set(sockaddr_in & sa);
+		void set(const char * name, unsigned short port);
+		void set(unsigned long addr, unsigned short port);
+		unsigned short port() const;
+		unsigned long addr() const;
+		
+		const static IP null;
 	};
+	
+	bool operator<(const IP l, const IP r);
 
 	int epollCreate();
 	void epollWatchRead(int epollfd, int fd);
@@ -39,8 +49,16 @@ namespace Socket
 	EpollIter epollWait(int epollfd);
 	
 	bool read(int fd, Buffer & b);
+	bool read(int fd, Buffer & b, IP & src);
+	
+	//consumes written part of buffer
+	//returns true if entire buffer was written succesfully
+	bool write(int fd, Buffer & b);
+	bool write(int fd, Buffer & b, IP dst);
 	
 	int udpOpen(short port);
 };
+
+ostream& operator<< (ostream& os, const Socket::IP& str);
 
 #endif

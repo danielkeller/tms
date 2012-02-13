@@ -2,14 +2,16 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <errno.h>
 #include <cstdio>
 #include <cstdlib>
-#include <errno.h>
 
 #include "socket.h"
 #include "buffer.h"
 
 epoll_event Socket::EpollIter::events[EPOLL_MAX_E];
+	
+const Socket::IP Socket::IP::null;
 
 void diep(const char *s)
 {
@@ -36,28 +38,46 @@ bool Socket::EpollIter::tcp()
 	return type == SOCK_STREAM;
 }
 
-Socket::IP::IP(const char * name, unsigned short port)
+void Socket::IP::set(sockaddr_in & sa)
+{
+	address = sa;
+}
+
+void Socket::IP::set(const char * name, unsigned short port)
 {
 	address.sin_family = AF_INET;
 	address.sin_port = htons(port);
 	inet_pton(AF_INET, name, &address.sin_addr);
 }
 
-Socket::IP::IP(unsigned long addr, unsigned short port)
+void Socket::IP::set(unsigned long addr, unsigned short port)
 {
 	address.sin_family = AF_INET;
 	address.sin_port = htons(port);
 	address.sin_addr.s_addr = htonl(addr);
 }
 
-unsigned short Socket::IP::port()
+unsigned short Socket::IP::port() const
 {
 	return ntohs(address.sin_port);
 }
 
-unsigned long Socket::IP::addr()
+unsigned long Socket::IP::addr() const
 {
 	return ntohl(address.sin_addr.s_addr);
+}
+
+ostream& operator<< (ostream& os, const Socket::IP& addr)
+{
+	static char str[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &(addr.address.sin_addr), str, INET_ADDRSTRLEN);
+	
+	return os << str << ':' << addr.port();
+}
+
+bool Socket::operator<(const IP l, const IP r)
+{
+	return l.address.sin_addr.s_addr < r.address.sin_addr.s_addr;
 }
 
 int Socket::epollCreate()
@@ -73,8 +93,16 @@ void Socket::epollWatchRead(int epollfd, int fd)
 	struct epoll_event ev;
 	ev.events = EPOLLIN;
 	ev.data.fd = fd;
-	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev) == -1 && errno != EEXIST)
-		diep("epoll_ctl"); //EEXIST check needed to watch same socket for different pids
+	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev) == -1)
+	{
+		if (errno == EEXIST) //EEXIST check needed to watch same socket for different pids
+		{
+			if (epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &ev) == -1) //add read watch if watching write
+				diep("epoll_ctl");
+		}
+		else
+			diep("epoll_ctl");
+	}
 }
 	
 void Socket::epollWatchWrite(int epollfd, int fd)
@@ -82,8 +110,16 @@ void Socket::epollWatchWrite(int epollfd, int fd)
 	struct epoll_event ev;
 	ev.events = EPOLLOUT;
 	ev.data.fd = fd;
-	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev) == -1 && errno != EEXIST)
-		diep("epoll_ctl");
+	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev) == -1)
+	{
+		if (errno == EEXIST) //EEXIST check needed to watch same socket for different pids
+		{
+			if (epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &ev) == -1) //add write watch if watching read
+				diep("epoll_ctl");
+		}
+		else
+			diep("epoll_ctl");
+	}
 }
 
 Socket::EpollIter Socket::epollWait(int epollfd)
@@ -104,6 +140,37 @@ bool Socket::read(int fd, Buffer & b)
 		return false;
 	b.push(buf, num);
 	return true;
+}
+
+bool Socket::read(int fd, Buffer & b, Socket::IP & src)
+{
+	static char buf[1024];
+	sockaddr_in sa;
+	size_t len = sizeof(sa); 
+	int num = recvfrom(fd, buf, 1024, 0, (sockaddr*)&sa, &len);
+	if (num < 0)
+		return false;
+	b.push(buf, num);
+	src.set(sa);
+	return true;
+}
+
+bool Socket::write(int fd, Buffer & b)
+{
+	int num = ::write(fd, b.buffer(), b.length());
+	if (num < 0)
+		return false;
+	b.pop(num);
+	return b.length() == 0;
+}
+
+bool Socket::write(int fd, Buffer & b, Socket::IP dst)
+{ 
+	int num = sendto(fd, b.buffer(), b.length(), 0, (sockaddr*)&(dst.address), sizeof(sockaddr_in));
+	if (num < 0)
+		return false;
+	b.pop(num);
+	return b.length() == 0;
 }
 
 int Socket::udpOpen(short port)

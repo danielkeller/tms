@@ -15,20 +15,25 @@ namespace Socket
 enum Result {
 	Err, //error condition, delete this state
 	Wait, //not enough data, keep state & keep watch
-	Done //keep state, delete watch
+	OK, //keep state, delete watch
+	Done //no error, delete state
 };
+
+//fd of udp port torque talks to
+extern int torquePort;
 
 //ports
 #define TORQUE_MS_PORT 28002
 
 //packet types
-#define LIST_REQ 6
-#define LIST_RESP 8
-#define INFO_REQ 10
-#define INFO_RESP 12
-#define HEARTBEAT 22
+#define LIST_REQ ((char)6)
+#define LIST_RESP ((char)8)
+#define INFO_REQ ((char)10)
+#define INFO_RESP ((char)12)
+#define HEARTBEAT ((char)22)
 
 //other
 #define EPOLL_MAX_E 10
+#define SERV_PER_LIST 32
 
 #endif

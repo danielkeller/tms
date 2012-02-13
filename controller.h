@@ -1,16 +1,22 @@
 #include "common.h"
+#include "buffer.h"
 #include <map>
 using namespace std;
 
 class Controller
 {
 	map<pair<int,char>, Watcher*> wreads;
-	map<int, Watcher*> wwrites;
-	
+	//map<int, Watcher*> wwrites; //?
+	map<int, State*> sreads;
+	map<int, map<Socket::IP, Buffer> > writes;
+
 	int epollfd;
+	
+	static Controller * sng;
+	Controller();
 
 public:
-	Controller();
+	static Controller * get();
 	void loop(); //program main loop
 
 	enum Type {
@@ -18,13 +24,14 @@ public:
 		Write
 	};
 	
-	//watch an open tcp stream for writeable / data
-	void watch(int fd, State* s, Type t);
+	//perform asynchronous write on fd
+	template <typename T>
+	void writeTo(int fd, T d);
+	template <typename T>
+	void writeTo(int fd, Socket::IP addr, T d);
 	
-	//watch a udp socket for writeable
-	//if we want data from udp, we will watch permanently
-	//unless we add address filter (which i don't think is needed)
-	void watch(int fd, State* s);
+	//watch an open tcp stream for data
+	void watch(int fd, State* s, Type t);
 
 	//permanently watch a tcp socket for pending connections
 	void watch(int fd, Watcher* s);
@@ -32,3 +39,17 @@ public:
 	//permanently watch a udp socket for data
 	void watch(int fd, char pid, Watcher* s);
 };
+
+template <typename T>
+void Controller::writeTo(int fd, T d)
+{
+	writes[fd][Socket::IP::null].write(d);
+	Socket::epollWatchWrite(epollfd, fd);
+}
+
+template <typename T>
+void Controller::writeTo(int fd, Socket::IP addr, T d)
+{
+	writes[fd][addr].write(d);
+	Socket::epollWatchWrite(epollfd, fd);
+}
