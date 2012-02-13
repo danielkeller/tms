@@ -3,14 +3,24 @@
 #include "state.h"
 #include <iostream>
 
+Controller * Controller::sng = 0;
+
 Controller::Controller()
 {
 	epollfd = Socket::epollCreate();
 }
 
+Controller * Controller::get()
+{
+	if (!sng)
+		sng = new Controller();
+	return sng;
+}
+
 void Controller::loop()
 {
 	Socket::EpollIter eit;
+	Socket::IP src;
 
 	while (true)
 	{
@@ -26,33 +36,44 @@ void Controller::loop()
 				else
 				{
 					Buffer b;
-					while (Socket::read(*eit, b))
+					while (Socket::read(*eit, b, src))
 					{
 						char pid;
 						b.peek(pid);
 						if (wreads.count(make_pair(*eit, pid)))
-							wreads[make_pair(*eit, pid)]->handle(&b);
+							wreads[make_pair(*eit, pid)]->handle(&b, src);
 						else
 							cerr << "Got junk packet #" << (int)pid << endl;
 						b.clear();
 					}
 				}
 			}
+			else //write
+			{
+				for(map<Socket::IP, Buffer>::iterator it = writes[*eit].begin();
+					it != writes[*eit].end();)
+				{
+					//wtf??
+					if(//it->first == Socket::IP::null //sending on tcp?
+						//? Socket::write(*eit, it->second) //no addr needed
+						/*:*/ Socket::write(*eit, it->second, it->first)) //addr needed
+					{
+						//entire buffer was written, cool
+						writes[*eit].erase(it++); //clean up. note post increment.
+					}
+					else
+						++it;
+				}
+					
+			}
 		}
 			
 	}
 }
 
-//watch an open tcp stream for writeable / data
+//watch an open tcp stream for data
 void Controller::watch(int fd, State * s, Type t)
 {}
-
-//watch a udp socket for writeable
-//if we want data from udp, we will watch permanently
-void Controller::watch(int fd, State *s)
-{
-
-}
 
 //permanently watch a tcp socket for pending connections
 void Controller::watch(int fd, Watcher * s)

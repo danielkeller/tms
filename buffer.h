@@ -16,14 +16,16 @@ class Buffer
 
 public:
 	Buffer();
+	Buffer(const Buffer&);
 	~Buffer() {delete[] start;}
 	
-	size_t length() {return end-start;}
-	size_t available() {return end-pos;}
+	size_t length() const {return end-start;}
+	size_t available() const {return end-pos;}
 	void push(char * d, size_t l);
 	void pop(size_t l);
 	void pop() {pop(pos-start);} //pops all read data
 	void clear(); //pops all data
+	const void * buffer() {return start;}
 	
 	template<typename T>
 	bool read(T & d);
