@@ -41,12 +41,12 @@ template <typename T>
 void Controller::writeTo(int fd, T d)
 {
 	writes[fd][Socket::IP::null].write(d);
-	Socket::epollWatchWrite(epollfd, fd);
+	Socket::epollWatchWrite(fd);
 }
 
 template <typename T>
 void Controller::writeTo(int fd, Socket::IP addr, T d)
 {
 	writes[fd][addr].write(d);
-	Socket::epollWatchWrite(epollfd, fd);
+	Socket::epollWatchWrite(fd);
 }

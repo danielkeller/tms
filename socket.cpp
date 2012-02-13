@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <cstdio>
 #include <cstdlib>
-#include <map>
+#include <set>
 
 #include "socket.h"
 #include "buffer.h"
@@ -16,9 +16,8 @@ epoll_event Socket::EpollIter::events[EPOLL_MAX_E];
 	
 const Socket::IP Socket::IP::null;
 
-//maps fd to reference count
-map<int, int> epollReads;
-map<int, int> epollWrites;
+set<int> epollReads;
+set<int> epollWrites;
 int epollfd;
 
 void diep(const char *s)
@@ -88,12 +87,11 @@ bool Socket::operator<(const IP l, const IP r)
 	return l.address.sin_addr.s_addr < r.address.sin_addr.s_addr;
 }
 
-int Socket::epollCreate()
+void Socket::epollCreate()
 {
 	epollfd = epoll_create1(0);
 	if (epollfd == -1)
 		diep("epoll_create1");
-	return fd;
 }
 
 void Socket::epollWatchRead(int fd)
@@ -103,19 +101,16 @@ void Socket::epollWatchRead(int fd)
 	ev.data.fd = fd;
 	int ctl;
 	if (epollReads.count(fd))
-	{
-		++epollReads[fd];
 		return;
-	}
 	else if (epollWrites.count(fd))
 		ctl = EPOLL_CTL_MOD;
 	else
-		ctl = EOPLL_CTL_ADD;
+		ctl = EPOLL_CTL_ADD;
 
 	if (epoll_ctl(epollfd, ctl, fd, &ev) == -1)
 			diep("epoll_ctl");
 
-	epollReads[fd] = 1;
+	epollReads.insert(fd);
 }
 	
 void Socket::epollWatchWrite(int fd)
@@ -125,19 +120,16 @@ void Socket::epollWatchWrite(int fd)
 	ev.data.fd = fd;
 	int ctl;
 	if (epollWrites.count(fd))
-	{
-		++epollWrites[fd];
 		return;
-	}
 	else if (epollReads.count(fd))
 		ctl = EPOLL_CTL_MOD;
 	else
-		ctl = EOPLL_CTL_ADD;
+		ctl = EPOLL_CTL_ADD;
 
 	if (epoll_ctl(epollfd, ctl, fd, &ev) == -1)
 			diep("epoll_ctl");
 
-	epollWrites[fd] = 1;
+	epollWrites.insert(fd);
 }
 
 void Socket::epollUnWatchRead(int fd)
@@ -151,14 +143,12 @@ void Socket::epollUnWatchRead(int fd)
 	else if (epollWrites.count(fd))
 		ctl = EPOLL_CTL_MOD;
 	else
-		ctl = EOPLL_CTL_DEL;
+		ctl = EPOLL_CTL_DEL;
 
 	if (epoll_ctl(epollfd, ctl, fd, &ev) == -1)
 			diep("epoll_ctl");
 
-	--epollReads[fd];
-	if (epollReads[fd] < 1)
-		epollReads.erase(fd);
+	epollReads.erase(fd);
 }
 	
 void Socket::epollUnWatchWrite(int fd)
@@ -172,17 +162,15 @@ void Socket::epollUnWatchWrite(int fd)
 	else if (epollReads.count(fd))
 		ctl = EPOLL_CTL_MOD;
 	else
-		ctl = EOPLL_CTL_DEL;
+		ctl = EPOLL_CTL_DEL;
 
 	if (epoll_ctl(epollfd, ctl, fd, &ev) == -1)
 			diep("epoll_ctl");
 
-	--epollWrites[fd];
-	if (epollWrites[fd] < 1)
-		epollWrites.erase(fd);
+	epollWrites.erase(fd);
 }
 
-Socket::EpollIter Socket::epollWait(int epollfd)
+Socket::EpollIter Socket::epollWait()
 {
 	Socket::EpollIter eit;
 	int nfds = epoll_wait(epollfd, eit.events, EPOLL_MAX_E, -1);

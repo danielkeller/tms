@@ -60,14 +60,13 @@ void Controller::loop()
 					{
 						//entire buffer was written, cool
 						writes[*eit].erase(it++); //clean up. note post increment.
+						Socket::epollUnWatchWrite(*eit);
 					}
 					else
 						++it;
 				}
-					
 			}
 		}
-			
 	}
 }
 
