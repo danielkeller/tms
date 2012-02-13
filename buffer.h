@@ -105,7 +105,7 @@ inline void Buffer::write(string & d)
 template<>
 inline void Buffer::write(Socket::IP & d)
 {
-	unsigned long addr = d.addr();
+	unsigned long addr = d.naddr();
 	unsigned short port = d.port();
 	write(addr);
 	write(port);

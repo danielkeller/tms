@@ -57,7 +57,7 @@ void ListState::writeResp(Socket::IP dst)
 	ctrl->writeTo(torquePort, dst, LIST_RESP);
 	ctrl->writeTo(torquePort, dst, (char)0);
 	ctrl->writeTo(torquePort, dst, key);
-	ctrl->writeTo(torquePort, dst, (char)1); //packet number
+	ctrl->writeTo(torquePort, dst, (char)0); //packet number
 	ctrl->writeTo(torquePort, dst, (char)1); //out of
 	ctrl->writeTo(torquePort, dst, (short)Data::servs.size());
 	for (map<Socket::IP, Data::Server>::iterator it = Data::servs.begin(); it != Data::servs.end(); ++it)
