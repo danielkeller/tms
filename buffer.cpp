@@ -30,14 +30,16 @@ void Buffer::push(char * d, size_t l)
 	
 void Buffer::pop(size_t l)
 {
-	if (l >= length())
+	if (l > length())
 	{
 		//this is bad, but recoverable
-		cerr << "Popping more data than exists" << endl;
+		cerr << "Popping more data than exists: " << l << " > " << length() << endl;
 		print_stacktrace();
 		delete[] start;
 		pos = end = start = new char[0];
 	}
+	else if (l == length())
+		pos = end = start = new char[0];
 	else
 	{
 		char * buf = new char[length() - l];
