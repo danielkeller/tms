@@ -8,6 +8,7 @@ class Watcher
 {
 public:
 	virtual void handle(Buffer * b, Socket::IP src) = 0;
+	virtual void handle_al() {}
 };
 
 class State
@@ -22,6 +23,7 @@ class HeartWatcher : public Watcher
 {
 public:
 	void handle(Buffer * b, Socket::IP src);
+	void handle_al();
 };
 
 class ListWatcher : public Watcher

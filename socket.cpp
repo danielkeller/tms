@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <errno.h>
+#include <signal.h>
 #include <cstdio>
 #include <cstdlib>
 #include <set>
@@ -19,6 +20,8 @@ const Socket::IP Socket::IP::null;
 set<int> epollReads;
 set<int> epollWrites;
 int epollfd;
+
+sigset_t empty_set, old_set;
 
 void diep(const char *s)
 {
@@ -92,6 +95,9 @@ void Socket::epollCreate()
 	epollfd = epoll_create1(0);
 	if (epollfd == -1)
 		diep("epoll_create1");
+
+	sigemptyset(&empty_set); //block all signals outside of epoll_wait
+	sigprocmask(SIG_SETMASK, &empty_set, &old_set);
 }
 
 void Socket::epollWatchRead(int fd)
@@ -173,8 +179,8 @@ void Socket::epollUnWatchWrite(int fd)
 Socket::EpollIter Socket::epollWait()
 {
 	Socket::EpollIter eit;
-	int nfds = epoll_wait(epollfd, eit.events, EPOLL_MAX_E, -1);
-	if (nfds == -1)
+	int nfds = epoll_pwait(epollfd, eit.events, EPOLL_MAX_E, -1, &old_set);
+	if (nfds == -1 && errno != EINTR)
 		diep("epoll_wait");
 	eit.num = nfds;
 	return eit;

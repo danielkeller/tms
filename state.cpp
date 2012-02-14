@@ -16,6 +16,10 @@ void HeartWatcher::handle(Buffer * b, Socket::IP src)
 	Data::servs[src].heartbeat = time(NULL);
 }
 
+void HeartWatcher::handle_al()
+{
+}
+
 void ListWatcher::handle(Buffer * b, Socket::IP src)
 {
 	cerr << "From: " << src << endl;

@@ -2,12 +2,27 @@
 #include "buffer.h"
 #include "state.h"
 #include <iostream>
+#include <unistd.h>
+#include <signal.h>
+
+//SIGALRM handler
+void alarm_hdl(int s)
+{
+	Controller::get()->alarm_notify();
+	alarm(60);
+}
 
 Controller * Controller::sng = 0;
 
 Controller::Controller()
 {
 	Socket::epollCreate();
+
+	//the struct and function have the same name...
+	struct sigaction sa;
+	sa.sa_handler = &alarm_hdl;
+	sigaction(SIGALRM, &sa, NULL);
+	alarm(60);
 }
 
 Controller * Controller::get()
@@ -15,6 +30,12 @@ Controller * Controller::get()
 	if (!sng)
 		sng = new Controller();
 	return sng;
+}
+
+void Controller::alarm_notify()
+{
+	for (set<Watcher*>::iterator it = walarms.begin(); it != walarms.end(); ++it)
+		(*it)->handle_al();
 }
 
 void Controller::loop()
@@ -86,4 +107,10 @@ void Controller::watch(int fd, char pid, Watcher * s)
 		return; //already watching here
 	wreads[make_pair(fd, pid)] = s;
 	Socket::epollWatchRead(fd);
+}
+
+//watch for every-minute alarm
+void Controller::awatch(Watcher* w)
+{
+	walarms.insert(w);
 }

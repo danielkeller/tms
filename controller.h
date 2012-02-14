@@ -1,6 +1,7 @@
 #include "common.h"
 #include "buffer.h"
 #include <map>
+#include <set>
 using namespace std;
 
 class Controller
@@ -8,6 +9,7 @@ class Controller
 	map<pair<int,char>, Watcher*> wreads;
 	map<int, State*> sreads;
 	map<int, map<Socket::IP, Buffer> > writes;
+	set<Watcher*> walarms;
 	
 	static Controller * sng;
 	Controller();
@@ -15,6 +17,7 @@ class Controller
 public:
 	static Controller * get();
 	void loop(); //program main loop
+	void alarm_notify();
 
 	enum Type {
 		Read,
@@ -35,6 +38,9 @@ public:
 	
 	//permanently watch a udp socket for data
 	void watch(int fd, char pid, Watcher* s);
+	
+	//watch for every-minute alarm
+	void awatch(Watcher* w);
 };
 
 template <typename T>
