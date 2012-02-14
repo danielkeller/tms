@@ -41,24 +41,4 @@ class ListWatcher : public Watcher
 public:
 	void handle(Buffer * b, Socket::IP src);
 };
-	
-class ListState : public State
-{
-	enum {
-		WriteDB,
-		ReadDB,
-		WriteResponse
-	} status;
-
-	char page, minp, maxp, stype, maxb;
-	short mincpu;
-	int key, region, version;
-	string game, mission;
-	
-public:
-	Result readReq(Buffer * b);
-	void writeResp(Socket::IP dst);
-	Result handle(Buffer * b);
-	ListState() {status = WriteResponse;}
-};
 		

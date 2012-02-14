@@ -72,53 +72,34 @@ void InfoWatcher::handle_al()
 
 void ListWatcher::handle(Buffer * b, Socket::IP src)
 {
-	cerr << "From: " << src << endl;
-	ListState * ls = new ListState();
-	if (ls->readReq(b) == Err)
-		;
-	else
-		ls->writeResp(src);
-	delete ls;
-	//(eventually) don't delete otherwise, will get deleted by controller
-}
+	char page, minp, maxp, stype, maxb;
+	short mincpu;
+	int key, region, version;
+	string game, mission;
 
-Result ListState::readReq(Buffer * b)
-{
-	UTEST(b->skip(2));
-	UTEST(b->read(key));
-	UTEST(b->read(page));
-	UTEST(b->read(game));
-	UTEST(b->read(mission));
-	UTEST(b->read(minp));
-	UTEST(b->read(maxp));
-	UTEST(b->read(region));
-	UTEST(b->read(version));
-	UTEST(b->read(stype));
-	UTEST(b->read(maxb));
-	UTEST(b->read(mincpu));
+	WTEST(b->skip(2));
+	WTEST(b->read(key));
+	WTEST(b->read(page));
+	WTEST(b->read(game));
+	WTEST(b->read(mission));
+	WTEST(b->read(minp));
+	WTEST(b->read(maxp));
+	WTEST(b->read(region));
+	WTEST(b->read(version));
+	WTEST(b->read(stype));
+	WTEST(b->read(maxb));
+	WTEST(b->read(mincpu));
 	char bcount;
-	UTEST(b->read(bcount));
-	UTEST(b->skip(4 * bcount));
-	
-	cerr << game << " " << mission << endl;
-	
-	return OK;
-}
+	WTEST(b->read(bcount));
+	WTEST(b->skip(4 * bcount));
 
-void ListState::writeResp(Socket::IP dst)
-{
 	Controller * ctrl = Controller::get();
-	ctrl->writeTo(torquePort, dst, LIST_RESP);
-	ctrl->writeTo(torquePort, dst, (char)0);
-	ctrl->writeTo(torquePort, dst, key);
-	ctrl->writeTo(torquePort, dst, (char)0); //packet number
-	ctrl->writeTo(torquePort, dst, (char)1); //out of
-	ctrl->writeTo(torquePort, dst, (short)Data::servs.size());
+	ctrl->writeTo(torquePort, src, LIST_RESP);
+	ctrl->writeTo(torquePort, src, (char)0);
+	ctrl->writeTo(torquePort, src, key);
+	ctrl->writeTo(torquePort, src, (char)0); //packet number
+	ctrl->writeTo(torquePort, src, (char)1); //out of
+	ctrl->writeTo(torquePort, src, (short)Data::servs.size());
 	for (map<Socket::IP, Data::Server>::iterator it = Data::servs.begin(); it != Data::servs.end(); ++it)
-		ctrl->writeTo(torquePort, dst, it->first);
-}
-	
-Result ListState::handle(Buffer * b)
-{
-	return Done;
+		ctrl->writeTo(torquePort, src, it->first);
 }
