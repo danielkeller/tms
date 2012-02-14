@@ -9,7 +9,7 @@
 void alarm_hdl(int s)
 {
 	Controller::get()->alarm_notify();
-	alarm(60);
+	alarm(CLOCK_RATE);
 }
 
 Controller * Controller::sng = 0;
@@ -22,7 +22,7 @@ Controller::Controller()
 	struct sigaction sa;
 	sa.sa_handler = &alarm_hdl;
 	sigaction(SIGALRM, &sa, NULL);
-	alarm(60);
+	alarm(CLOCK_RATE);
 }
 
 Controller * Controller::get()

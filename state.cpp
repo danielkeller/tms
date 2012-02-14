@@ -18,6 +18,11 @@ void HeartWatcher::handle(Buffer * b, Socket::IP src)
 
 void HeartWatcher::handle_al()
 {
+	for(map<Socket::IP, Data::Server>::iterator it = Data::servs.begin(); it != Data::servs.end();)
+		if (time(NULL) - it->second.heartbeat > SRV_MAX_AGE)
+			Data::servs.erase(it++);
+		else
+			++it;
 }
 
 void ListWatcher::handle(Buffer * b, Socket::IP src)

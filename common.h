@@ -33,7 +33,9 @@ extern int torquePort;
 #define HEARTBEAT ((char)22)
 
 //other
-#define EPOLL_MAX_E 10
-#define SERV_PER_LIST 32
+#define EPOLL_MAX_E 10 //max events returned by epoll
+#define SERV_PER_LIST 32 //servers sent in one list packet
+#define CLOCK_RATE 60 //clock period in seconds
+#define SRV_MAX_AGE 60*5 //time before server is removed
 
 #endif
