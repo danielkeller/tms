@@ -17,9 +17,14 @@ int main()
 	
 	ListWatcher lw;
 	ctrl->watch(torquePort, LIST_REQ, &lw);
+	
 	HeartWatcher hw;
 	ctrl->watch(torquePort, HEARTBEAT, &hw);
 	ctrl->awatch(&hw);
+	
+	InfoWatcher iw;
+	ctrl->watch(torquePort, INFO_RESP, &iw);
+	ctrl->awatch(&iw);
 	
 	ctrl->loop();
 	

@@ -10,9 +10,21 @@ using namespace std;
 //for tcp, end of data means more is (probably) on the way, wait
 #define TTEST(x) if (!(x)) {b->reset(); return Wait;}
 #define UTEST(x) if (!(x)) {return Err;}
+//for watcher, don't return a value
+#define WTEST(x) if (!(x)) {return;}
+
+void RequestInfo(Socket::IP addr)
+{
+	Controller * ctrl = Controller::get();
+	ctrl->writeTo(torquePort, addr, INFO_REQ);
+	ctrl->writeTo(torquePort, addr, (char)0);
+	ctrl->writeTo(torquePort, addr, (int)0);
+}
 
 void HeartWatcher::handle(Buffer * b, Socket::IP src)
 {
+	if (!Data::servs.count(src))
+		RequestInfo(src); //request info the first time
 	Data::servs[src].heartbeat = time(NULL);
 }
 
@@ -23,6 +35,39 @@ void HeartWatcher::handle_al()
 			Data::servs.erase(it++);
 		else
 			++it;
+}
+
+void InfoWatcher::handle(Buffer * b, Socket::IP src)
+{
+	Data::servs[src].info = time(NULL);
+	WTEST(b->skip(6));
+	WTEST(b->read(Data::servs[src].game));
+	WTEST(b->read(Data::servs[src].mission));
+	WTEST(b->read(Data::servs[src].game));
+	WTEST(b->read(Data::servs[src].maxp));
+	WTEST(b->read(Data::servs[src].region));
+	WTEST(b->read(Data::servs[src].version));
+	WTEST(b->read(Data::servs[src].flags));
+	WTEST(b->read(Data::servs[src].bots));
+	int cpu;
+	WTEST(b->read(cpu));
+	Data::servs[src].cpu = cpu; //int -> short
+	signed char players;
+	WTEST(b->read(players));
+	Data::servs[src].players.clear();
+	for (int i=1; i<players; ++i)
+	{
+		int playerid;
+		WTEST(b->read(playerid));
+		Data::servs[src].players.push_back(playerid);
+	}
+}
+
+void InfoWatcher::handle_al()
+{
+	for(map<Socket::IP, Data::Server>::iterator it = Data::servs.begin(); it != Data::servs.end(); ++it)
+		if (time(NULL) - it->second.info > SRV_REFR_AGE)
+			RequestInfo(it->first);
 }
 
 void ListWatcher::handle(Buffer * b, Socket::IP src)
