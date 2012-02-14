@@ -15,6 +15,7 @@ namespace Data
 		int region, version;
 		vector<int> players;
 		time_t heartbeat;
+		time_t info;
 	};
 
 	extern map<Socket::IP, Server> servs;

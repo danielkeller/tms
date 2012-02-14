@@ -36,6 +36,7 @@ extern int torquePort;
 #define EPOLL_MAX_E 10 //max events returned by epoll
 #define SERV_PER_LIST 32 //servers sent in one list packet
 #define CLOCK_RATE 60 //clock period in seconds
-#define SRV_MAX_AGE 60*5 //time before server is removed
+#define SRV_REFR_AGE (60*3) //time before server data is re-requested
+#define SRV_MAX_AGE (60*5) //time before server is removed
 
 #endif
