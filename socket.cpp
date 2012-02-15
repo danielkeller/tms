@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
+#include <string.h>
 #include <cstdio>
 #include <cstdlib>
 #include <set>
@@ -88,6 +89,11 @@ ostream& operator<< (ostream& os, const Socket::IP& addr)
 bool Socket::operator<(const IP l, const IP r)
 {
 	return l.address.sin_addr.s_addr < r.address.sin_addr.s_addr;
+}
+
+bool Socket::operator==(const IP l, const IP r)
+{
+	return !memcmp(&l.address, &r.address, sizeof(l.address));
 }
 
 void Socket::epollCreate()

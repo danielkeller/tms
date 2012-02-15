@@ -74,11 +74,10 @@ void Controller::loop()
 				for(map<Socket::IP, Buffer>::iterator it = writes[*eit].begin();
 					it != writes[*eit].end();)
 				{
-					//wtf??
-					if(//it->first == Socket::IP::null //sending on tcp?
-						//? Socket::write(*eit, it->second) //no addr needed
-						/*:*/ Socket::write(*eit, it->second, it->first)) //addr needed
-					{
+					if(it->first == Socket::IP::null //sending on tcp?
+						? Socket::write(*eit, it->second) //no addr needed
+						: Socket::write(*eit, it->second, it->first)) //addr needed
+					{//TODO: packet boundaries?
 						//entire buffer was written, cool
 						writes[*eit].erase(it++); //clean up. note post increment.
 						Socket::epollUnWatchWrite(*eit);

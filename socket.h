@@ -43,6 +43,7 @@ namespace Socket
 	};
 	
 	bool operator<(const IP l, const IP r);
+	bool operator==(const IP l, const IP r);
 
 	void epollCreate();
 	void epollWatchRead(int fd);
