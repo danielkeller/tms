@@ -4,6 +4,7 @@
 #include "controller.h"
 #include <time.h>
 #include <iostream>
+#include <algorithm>
 using namespace std;
 
 //for udp, end of data means bad packet, don't wait
@@ -61,6 +62,9 @@ void InfoWatcher::handle(Buffer * b, Socket::IP src)
 		WTEST(b->read(playerid));
 		Data::servs[src].players.push_back(playerid);
 	}
+	//maintain sorted list
+	sort(Data::servs[src].players.begin(), Data::servs[src].players.end());
+	
 }
 
 void InfoWatcher::handle_al()
@@ -72,10 +76,11 @@ void InfoWatcher::handle_al()
 
 void ListWatcher::handle(Buffer * b, Socket::IP src)
 {
-	char page, minp, maxp, stype, maxb;
+	char page, minp, maxp, flags, maxb;
 	short mincpu;
 	int key, region, version;
 	string game, mission;
+	vector<int> buddies;
 
 	WTEST(b->skip(2));
 	WTEST(b->read(key));
@@ -86,12 +91,31 @@ void ListWatcher::handle(Buffer * b, Socket::IP src)
 	WTEST(b->read(maxp));
 	WTEST(b->read(region));
 	WTEST(b->read(version));
-	WTEST(b->read(stype));
+	WTEST(b->read(flags));
 	WTEST(b->read(maxb));
 	WTEST(b->read(mincpu));
 	char bcount;
 	WTEST(b->read(bcount));
-	WTEST(b->skip(4 * bcount));
+	for (int i=1; i<bcount; ++i)
+	{
+		int playerid;
+		WTEST(b->read(playerid));
+		buddies.push_back(playerid);
+	}
+	sort(buddies.begin(), buddies.end());
+	
+	vector<int> intsct;
+	
+	//use pointers to avoid copying lots of memory
+	vector<const Socket::IP*> flt_result;
+	for (map<Socket::IP, Data::Server>::iterator it = Data::servs.begin(); it != Data::servs.end(); ++it)
+		if ( it->second.game == game && (mission != "Any" && it->second.mission == mission)
+//			&& it->second.players.size() >= minp && it->second.players.size() <= maxp //not in stock Torque
+			&& (!region || region & it->second.region) && version == it->second.version
+			&& (flags & it->second.flags) == flags && it->second.bots <= maxb && it->second.cpu <= mincpu
+			&& (!buddies.size() || set_intersection(buddies.begin(), buddies.end(),
+				it->second.players.begin(), it->second.players.end(), intsct.begin()) > intsct.begin()) )
+			flt_result.push_back(&it->first);
 
 	Controller * ctrl = Controller::get();
 	ctrl->writeTo(torquePort, src, LIST_RESP);
@@ -100,6 +124,6 @@ void ListWatcher::handle(Buffer * b, Socket::IP src)
 	ctrl->writeTo(torquePort, src, (char)0); //packet number
 	ctrl->writeTo(torquePort, src, (char)1); //out of
 	ctrl->writeTo(torquePort, src, (short)Data::servs.size());
-	for (map<Socket::IP, Data::Server>::iterator it = Data::servs.begin(); it != Data::servs.end(); ++it)
-		ctrl->writeTo(torquePort, src, it->first);
+	for (vector<const Socket::IP*>::iterator it = flt_result.begin(); it != flt_result.end(); ++it)
+		ctrl->writeTo(torquePort, src, **it);
 }

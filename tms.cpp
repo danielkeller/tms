@@ -26,6 +26,8 @@ int main()
 	ctrl->watch(torquePort, INFO_RESP, &iw);
 	ctrl->awatch(&iw);
 	
+	//TODO: REST server
+	
 	ctrl->loop();
 	
 	return 0;
